@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comité al Día · Calculadora de gastos comunes</title>
+<meta name="description" content="Calcula gratis cuánto paga cada unidad de tu condominio, con el recargo del fondo de reserva incluido.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --ink:#1C2629; --muted:#56666A;
+  --line:#C8D3D1; --accent:#1E5F74; --accent-ink:#FFFFFF; --signal:#E3A62A; --warn:#9A3B1F; --soft:#DCE7E6;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141B1D; --surface:#1D2729; --ink:#E6EEEC; --muted:#9DB0AE;
+    --line:#33454A; --accent:#5FB0C9; --accent-ink:#0E1A1D; --signal:#F0BE52; --warn:#F08A66; --soft:#22343A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141B1D; --surface:#1D2729; --ink:#E6EEEC; --muted:#9DB0AE;
+  --line:#33454A; --accent:#5FB0C9; --accent-ink:#0E1A1D; --signal:#F0BE52; --warn:#F08A66; --soft:#22343A;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:1.0625rem/1.6 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.1;margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.wrap{max-width:72rem;margin:0 auto;padding:0 1.25rem}
+
+header.top{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0}
+.brand{display:flex;align-items:center;gap:.6rem;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:1.15rem}
+.brand svg{flex:none}
+.top a.skip{font-size:.95rem}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr);gap:2rem;padding:1.5rem 0 3rem}
+@media (min-width:60rem){.hero{grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:start;gap:3rem;padding-top:3rem}}
+.hero h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:800;letter-spacing:-.02em;max-width:14ch}
+.hero p.lead{font-size:1.15rem;color:var(--muted);max-width:34ch;margin:1.25rem 0 0}
+.facts{margin:1.75rem 0 0;padding:0;list-style:none;display:grid;gap:.75rem;max-width:36ch}
+.facts li{padding-left:1.1rem;border-left:3px solid var(--signal)}
+
+/* Calculadora: la boleta */
+.calc{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.calc-head{padding:1.25rem 1.25rem 0}
+.calc-head h2{font-size:1.35rem}
+.calc-head p{margin:.35rem 0 0;color:var(--muted);font-size:.95rem}
+.fields{display:grid;gap:1rem;padding:1.25rem;grid-template-columns:1fr}
+@media (min-width:36rem){.fields{grid-template-columns:3fr 2fr}}
+label{display:block;font-weight:700;font-size:.95rem;margin-bottom:.3rem}
+.hint{display:block;font-weight:400;color:var(--muted);font-size:.85rem}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:.6rem .7rem;min-height:2.75rem}
+input:focus,select:focus{border-color:var(--accent)}
+.method{grid-column:1/-1}
+.seg{display:flex;flex-wrap:wrap;gap:.4rem}
+.seg button{font:inherit;font-size:.95rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:.45rem .9rem;cursor:pointer;min-height:2.5rem}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.units{padding:0 1.25rem 1rem}
+.units-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:.5rem .4rem;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.85rem;color:var(--muted);font-weight:700}
+td.num,th.num{text-align:right;white-space:nowrap}
+td input{min-height:2.4rem;padding:.4rem .5rem}
+td.name input{min-width:7.5rem}
+td.val input{min-width:5.5rem;text-align:right}
+td.total{font-weight:700}
+.del{border:0;background:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:.3rem .5rem;border-radius:6px}
+.del:hover{color:var(--warn)}
+tfoot td{border-bottom:0;font-weight:700}
+.row-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.9rem}
+.btn{font:inherit;font-weight:700;border-radius:8px;padding:.6rem 1rem;min-height:2.75rem;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent)}
+.btn.solid{background:var(--accent);color:var(--accent-ink)}
+.note{margin:.9rem 0 0;font-size:.92rem;padding:.6rem .8rem;border-radius:8px;background:var(--soft)}
+.note.warn{color:var(--warn)}
+.note:empty{display:none}
+
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.summary div{background:var(--surface);padding:1rem 1.25rem}
+.summary span{display:block;color:var(--muted);font-size:.85rem}
+.summary strong{font-family:"Bricolage Grotesque",sans-serif;font-size:1.5rem;font-variant-numeric:tabular-nums}
+
+/* Kit */
+.kit{padding:3.5rem 0;border-top:1px solid var(--line)}
+.kit-grid{display:grid;gap:2rem}
+@media (min-width:60rem){.kit-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:3rem}}
+.kit h2{font-size:clamp(1.7rem,3.5vw,2.4rem);max-width:16ch}
+.kit p{color:var(--muted);max-width:40ch}
+.kit dl{margin:0;display:grid;gap:1.25rem}
+.kit dt{font-weight:700}
+.kit dd{margin:.15rem 0 0;color:var(--muted)}
+
+.join{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:2rem 1.5rem;margin:0 0 3rem;display:grid;gap:1.25rem}
+@media (min-width:48rem){.join{grid-template-columns:1fr minmax(18rem,22rem);align-items:center;padding:2.25rem 2.5rem}}
+.join h2{font-size:clamp(1.5rem,3vw,2rem)}
+.join p{margin:.5rem 0 0;max-width:46ch;opacity:.9}
+.signup{display:grid;gap:.4rem;min-width:min(100%,20rem)}
+.signup label{color:var(--accent-ink);margin:0;font-size:.92rem}
+.signup input,.signup select{background:#FFFFFF;color:#1C2629;border-color:transparent;margin-bottom:.5rem}
+.signup .cta{font:inherit;cursor:pointer;border:0;background:var(--signal);color:#1C2629;font-weight:700;border-radius:8px;padding:.85rem 1.4rem;min-height:2.75rem;margin-top:.2rem}
+.hp{position:absolute;left:-9999px}
+
+footer{padding:0 0 2.5rem;color:var(--muted);font-size:.88rem}
+footer p{max-width:70ch}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:no-preference){.flash{animation:flash .6s ease}@keyframes flash{from{background:var(--soft)}to{background:var(--surface)}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="6" width="22" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M3 12h22M10 12v13M17 12v13" stroke="currentColor" stroke-width="2.2"/><circle cx="21" cy="5" r="4" fill="var(--signal)"/></svg>
+      Comité al Día
+    </div>
+    <a class="skip" href="#kit">Qué viene después</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Cuánto paga cada departamento, sin pelear con la planilla</h1>
+      <p class="lead">Una calculadora gratuita para comités de administración y presidentes de condominio. Ingresa el gasto del mes y obtén el cobro de cada unidad con el fondo de reserva incluido.</p>
+      <ul class="facts">
+        <li>Reparte por alícuota del reglamento, por metros cuadrados o en partes iguales.</li>
+        <li>Suma el recargo del fondo de reserva, que la Ley 21.442 fija en al menos 5%.</li>
+        <li>Copia el resultado para pegarlo en el grupo de WhatsApp o en el aviso del ascensor.</li>
+      </ul>
+    </div>
+
+    <div class="calc" aria-labelledby="calc-title">
+      <div class="calc-head">
+        <h2 id="calc-title">Gasto común del mes</h2>
+        <p>Los datos se quedan en tu navegador. No se envían a ninguna parte.</p>
+      </div>
+      <div class="fields">
+        <div>
+          <label for="total">Gastos comunes ordinarios <span class="hint">Total del mes en pesos</span></label>
+          <input id="total" inputmode="numeric" autocomplete="off" value="2.400.000">
+        </div>
+        <div>
+          <label for="reserva">Fondo de reserva <span class="hint">Recargo en %</span></label>
+          <input id="reserva" inputmode="decimal" autocomplete="off" value="5">
+        </div>
+        <div class="method">
+          <span id="method-label" style="display:block;font-weight:700;font-size:.95rem;margin-bottom:.4rem">Cómo se reparte</span>
+          <div class="seg" role="group" aria-labelledby="method-label">
+            <button type="button" data-m="alicuota" aria-pressed="true">Alícuota del reglamento (%)</button>
+            <button type="button" data-m="m2" aria-pressed="false">Metros cuadrados</button>
+            <button type="button" data-m="iguales" aria-pressed="false">Partes iguales</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="units">
+        <div class="units-scroll">
+          <table>
+            <thead><tr><th>Unidad</th><th class="num" id="val-head">Alícuota %</th><th class="num">Gasto común</th><th class="num">Fondo reserva</th><th class="num">A pagar</th><th><span class="sr">Quitar</span></th></tr></thead>
+            <tbody id="rows"></tbody>
+            <tfoot><tr><td>Total</td><td class="num" id="sum-val"></td><td class="num" id="sum-gc"></td><td class="num" id="sum-fr"></td><td class="num" id="sum-tot"></td><td></td></tr></tfoot>
+          </table>
+        </div>
+        <div class="row-actions">
+          <button type="button" class="btn" id="add">Agregar unidad</button>
+          <button type="button" class="btn solid" id="copy">Copiar resultado</button>
+        </div>
+        <p class="note" id="msg" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="summary">
+        <div><span>Recaudación total</span><strong id="big-total">$0</strong></div>
+        <div><span>Va al fondo de reserva</span><strong id="big-fr">$0</strong></div>
+        <div><span>Unidades</span><strong id="big-n">0</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="kit" id="kit">
+    <div class="kit-grid">
+      <div>
+        <h2>El kit para rendir cuentas cada mes sin trasnochar</h2>
+        <p>La ley pide al comité rendir cuentas detalladas todos los meses. Estamos preparando un kit pensado para vecinos que hacen esto de forma voluntaria, no para contadores.</p>
+      </div>
+      <dl>
+        <div><dt>Rendición de cuentas mensual</dt><dd>Planilla con ingresos, egresos, saldo y fondo de reserva, lista para compartir con la comunidad.</dd></div>
+        <div><dt>Presupuesto anual</dt><dd>Estructura basada en la guía del Minvu, con la proyección de ingresos y la justificación de alzas.</dd></div>
+        <div><dt>Control de morosidad</dt><dd>Seguimiento por unidad, avisos de cobro y registro de repactaciones.</dd></div>
+        <div><dt>Actas y convocatorias</dt><dd>Modelos editables para sesiones del comité y asambleas ordinarias y extraordinarias.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="join" aria-labelledby="join-title">
+    <div>
+      <h2 id="join-title">Recibe el kit primero, a precio de lanzamiento</h2>
+      <p>Inscríbete y te avisamos cuando esté disponible. Quienes se inscriban ahora lo obtendrán a $14.990 en vez del precio normal.</p>
+    </div>
+    <form class="signup" name="lista" method="POST" action="/gracias.html" data-netlify="true" netlify-honeypot="sitio-web">
+      <input type="hidden" name="form-name" value="lista">
+      <p class="hp"><label>No completar: <input name="sitio-web" tabindex="-1" autocomplete="off"></label></p>
+      <label for="email">Tu correo</label>
+      <input id="email" name="email" type="email" required autocomplete="email" placeholder="nombre@correo.cl">
+      <label for="rol">Tu rol en el condominio</label>
+      <select id="rol" name="rol" required>
+        <option value="">Elige una opción</option>
+        <option>Presidente(a) del comité</option>
+        <option>Miembro del comité</option>
+        <option>Administrador(a)</option>
+        <option>Copropietario(a) o residente</option>
+      </select>
+      <button type="submit" class="cta">Quiero el kit</button>
+    </form>
+  </section>
+
+  <footer>
+    <p>Esta calculadora es una herramienta de apoyo y no reemplaza lo que establezca el reglamento de copropiedad de tu condominio ni la asesoría de un profesional. Los montos se redondean al peso.</p>
+  </footer>
+</div>
+
+<script>
+
+const fmt = new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0});
+const nf = new Intl.NumberFormat("es-CL",{maximumFractionDigits:2});
+const parseNum = s => { if(typeof s!=="string") return Number(s)||0; const c=s.replace(/\$/g,"").replace(/\s/g,"").replace(/\./g,"").replace(",","."); const n=parseFloat(c); return isFinite(n)?n:0; };
+
+let method = "alicuota";
+let units = [
+  {name:"Depto. 101", alicuota:"22", m2:"62"},
+  {name:"Depto. 102", alicuota:"28", m2:"78"},
+  {name:"Depto. 201", alicuota:"22", m2:"62"},
+  {name:"Depto. 202", alicuota:"28", m2:"78"}
+];
+
+const KEY="comite-al-dia-v1";
+try{ const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s&&Array.isArray(s.units)&&s.units.length){units=s.units;method=s.method||method;document.getElementById("total").value=s.total||"";document.getElementById("reserva").value=s.reserva??"5";} }catch(e){}
+function save(){ try{localStorage.setItem(KEY,JSON.stringify({units,method,total:document.getElementById("total").value,reserva:document.getElementById("reserva").value}))}catch(e){} }
+
+const rowsEl=document.getElementById("rows");
+function renderRows(){
+  rowsEl.innerHTML="";
+  units.forEach((u,i)=>{
+    const tr=document.createElement("tr");
+    const valCell = method==="iguales" ? `<td class="num">—</td>` :
+      `<td class="val num"><input aria-label="${method==="m2"?"Metros cuadrados":"Alícuota"} de ${u.name||"unidad"}" inputmode="decimal" data-i="${i}" data-f="${method}" value="${method==="m2"?u.m2:u.alicuota}"></td>`;
+    tr.innerHTML=`<td class="name"><input aria-label="Nombre de la unidad" data-i="${i}" data-f="name"></td>${valCell}<td class="num" data-o="gc"></td><td class="num" data-o="fr"></td><td class="num total" data-o="tot"></td><td><button type="button" class="del" data-del="${i}" aria-label="Quitar ${u.name||"unidad"}">×</button></td>`;
+    tr.querySelector('[data-f="name"]').value=u.name;
+    rowsEl.appendChild(tr);
+  });
+  document.getElementById("val-head").textContent = method==="m2"?"m²":method==="iguales"?"Reparto":"Alícuota %";
+  compute();
+}
+
+let lastResult=[];
+function compute(){
+  const total=parseNum(document.getElementById("total").value);
+  const pct=parseNum(document.getElementById("reserva").value);
+  const n=units.length;
+  let shares, sumVal=0;
+  if(method==="iguales"){ shares=units.map(()=>n?1/n:0); }
+  else if(method==="m2"){ const v=units.map(u=>parseNum(u.m2)); sumVal=v.reduce((a,b)=>a+b,0); shares=v.map(x=>sumVal?x/sumVal:0); }
+  else { const v=units.map(u=>parseNum(u.alicuota)); sumVal=v.reduce((a,b)=>a+b,0); shares=v.map(x=>x/100); }
+
+  let sGc=0,sFr=0;
+  lastResult=units.map((u,i)=>{ const gc=Math.round(total*shares[i]); const fr=Math.round(gc*pct/100); sGc+=gc;sFr+=fr; return {name:u.name||`Unidad ${i+1}`,gc,fr,tot:gc+fr}; });
+  [...rowsEl.children].forEach((tr,i)=>{ const r=lastResult[i]; tr.querySelector('[data-o="gc"]').textContent=fmt.format(r.gc); tr.querySelector('[data-o="fr"]').textContent=fmt.format(r.fr); tr.querySelector('[data-o="tot"]').textContent=fmt.format(r.tot); });
+
+  document.getElementById("sum-val").textContent = method==="iguales"?"":method==="m2"?nf.format(sumVal)+" m²":nf.format(sumVal)+" %";
+  document.getElementById("sum-gc").textContent=fmt.format(sGc);
+  document.getElementById("sum-fr").textContent=fmt.format(sFr);
+  document.getElementById("sum-tot").textContent=fmt.format(sGc+sFr);
+  document.getElementById("big-total").textContent=fmt.format(sGc+sFr);
+  document.getElementById("big-fr").textContent=fmt.format(sFr);
+  document.getElementById("big-n").textContent=n;
+
+  const msg=document.getElementById("msg"); msg.className="note"; let t="";
+  if(method==="alicuota" && n && Math.abs(sumVal-100)>0.01){ msg.classList.add("warn"); t=`Las alícuotas suman ${nf.format(sumVal)}%, no 100%. Revisa el reglamento: con estos valores se recaudaría ${fmt.format(sGc)} en vez de ${fmt.format(total)}.`; }
+  else if(pct<5 && n){ msg.classList.add("warn"); t=`El recargo del fondo de reserva está bajo el 5% mínimo que exige la Ley 21.442.`; }
+  else if(n && Math.abs(sGc-total)>=1){ t=`Por el redondeo al peso, la suma difiere del total en ${fmt.format(Math.abs(sGc-total))}.`; }
+  msg.textContent=t;
+  save();
+}
+
+rowsEl.addEventListener("input",e=>{ const el=e.target; const i=+el.dataset.i, f=el.dataset.f; if(!f||isNaN(i)) return; units[i][f]=el.value; compute(); });
+rowsEl.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return; units.splice(+b.dataset.del,1); renderRows(); });
+document.getElementById("add").addEventListener("click",()=>{ units.push({name:`Unidad ${units.length+1}`,alicuota:"",m2:""}); renderRows(); const ins=rowsEl.querySelectorAll('[data-f="name"]'); ins[ins.length-1]?.focus(); });
+["total","reserva"].forEach(id=>document.getElementById(id).addEventListener("input",compute));
+document.getElementById("total").addEventListener("blur",e=>{ const n=parseNum(e.target.value); if(n) e.target.value=new Intl.NumberFormat("es-CL").format(n); });
+document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ method=b.dataset.m; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderRows(); }));
+
+document.getElementById("copy").addEventListener("click",async()=>{
+  const pct=document.getElementById("reserva").value;
+  const lines=["Gastos comunes del mes", ...lastResult.map(r=>`${r.name}: ${fmt.format(r.tot)} (incluye ${fmt.format(r.fr)} de fondo de reserva)`), `Recargo fondo de reserva: ${pct}%`];
+  const text=lines.join("\n"); const msg=document.getElementById("msg");
+  try{ await navigator.clipboard.writeText(text); msg.className="note"; msg.textContent="Resultado copiado. Pégalo donde lo necesites."; }
+  catch(e){ msg.className="note"; msg.textContent="Tu navegador no permitió copiar automáticamente. Selecciona la tabla y cópiala manualmente."; }
+});
+
+
+renderRows();
+</script>
+</body>
+</html>
